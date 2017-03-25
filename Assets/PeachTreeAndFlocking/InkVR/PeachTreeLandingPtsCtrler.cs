@@ -2,10 +2,7 @@
 using UnityEngine;
 
 public class PeachTreeLandingPtsCtrler : MonoBehaviour {
-
-	public bool testInStart;
-	public Transform testObj;
-
+    
 	public bool putTestingButterfly;
 	public GameObject testButterfly;
 
@@ -29,7 +26,8 @@ public class PeachTreeLandingPtsCtrler : MonoBehaviour {
 		Transform pt = Instantiate(placeholderPrefab, pos, Quaternion.identity);
 		pt.parent = ptsRoot;
 		pt.localEulerAngles = new Vector3(0,Random.Range(0,360),0);
-		
+        pt.name = name;
+
 		if(putTestingButterfly) {
 			GameObject butterflyObj = Instantiate(testButterfly, Vector3.zero, Quaternion.identity);
 			butterflyObj.transform.parent = pt;
@@ -44,19 +42,19 @@ public class PeachTreeLandingPtsCtrler : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-		if(testInStart) {
-			GenerateLandingPtsBasedOnBranches();
-			print("total num land pts:" + numPts);
-			if(testObj != null)
-				SetPtsDirBasedOnObserver(testObj.position);
-		}
+
 	}
 
 	public void GenerateLandingPtsBasedOnBranches() {
 		if(landingPtGenerated)
 			return;
 
-		EdgeCollider2D[] edges = branchRoot.GetComponentsInChildren<EdgeCollider2D>();
+        Quaternion currentRot = transform.rotation;
+        transform.localEulerAngles = new Vector3(90, 0, 0);
+        Vector3 currentLocalScale = transform.localScale;
+        transform.localScale = Vector3.one;
+
+        EdgeCollider2D[] edges = branchRoot.GetComponentsInChildren<EdgeCollider2D>();
 		foreach(EdgeCollider2D edge in edges) {
 			Vector3 edgeWorldPos = edge.transform.position;
 			
@@ -81,7 +79,11 @@ public class PeachTreeLandingPtsCtrler : MonoBehaviour {
 
 		}
 
-		landingPtGenerated = true;
+        transform.rotation = currentRot;
+        transform.localScale = currentLocalScale;
+        branchRoot.gameObject.SetActive(false);
+        
+        landingPtGenerated = true;
 	}
 	
 	public void SetPtsDirBasedOnObserver(Vector3 obsPos) {
