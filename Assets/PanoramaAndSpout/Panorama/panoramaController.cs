@@ -7,7 +7,6 @@ public class panoramaController : MonoBehaviour {
 
     public Transform camsRoot;
     public Camera cam;
-    public FromSameView fromSaveView;
 
     Camera[] allCams;
     float widthProportion;
@@ -42,13 +41,21 @@ public class panoramaController : MonoBehaviour {
             }
 
             setVFOV(cam, hFOVDeg);
-            
+
+            AudioListener audioListener = cam.GetComponent<AudioListener>();
+            if (audioListener != null)
+                Destroy(audioListener);
+
+            FromSameView fromSameView = cam.GetComponent<FromSameView>();
+            if (fromSameView != null)
+                fromSameView.enabled = false;
+
             allCams = new Camera[totalNumCam];
             allCams[0] = cam;
+            
             for (int i = 1;i < totalNumCam;i++)
             {
                 GameObject duplicatedObj = Object.Instantiate<GameObject>(camGO);
-                duplicatedObj.GetComponent<AudioListener>().enabled = false;
                 allCams[i] = duplicatedObj.GetComponent<Camera>();
             }
 
@@ -57,8 +64,11 @@ public class panoramaController : MonoBehaviour {
                 allCams[i].transform.parent = camsRoot;
             }
 
-            if (fromSaveView != null)
-                fromSaveView.isFollowing = true;
+            if (fromSameView != null)
+            {
+                fromSameView.isFollowing = true;
+                fromSameView.enabled = true;
+            }
 
             UpdateCams();
 

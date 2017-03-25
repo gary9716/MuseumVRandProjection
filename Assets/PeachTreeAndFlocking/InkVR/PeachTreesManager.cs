@@ -5,7 +5,7 @@ using UnityEngine;
 public class PeachTreesManager : MonoBehaviour {
 
 	public BoidController boidCtrler;
-
+    public PeachTreeLandingPtsCtrler initPerchingTree;
 	public PeachTreeLandingPtsCtrler[] peachTrees;
 	int minNumLandingPts = int.MaxValue;
 
@@ -39,8 +39,10 @@ public class PeachTreesManager : MonoBehaviour {
 		}
 		
 		if(numPeachTrees > 0 && boidCtrler != null) {
-			PeachTreeLandingPtsCtrler peachTree = chooseTree(false);
-			if(peachTree != null)
+			PeachTreeLandingPtsCtrler peachTree = initPerchingTree;
+            if (peachTree == null)
+                peachTree = chooseTree(true);
+            if (peachTree != null)
 				boidCtrler.PutBoidsOnTree(peachTree);
 		}
 
@@ -48,14 +50,6 @@ public class PeachTreesManager : MonoBehaviour {
 
 	}
 	
-	/*
-	public void FlyToSecondTree() {
-		if(numPeachTrees > 1) {
-			boidCtrler.FlyToTree(peachTrees[1]);
-		}
-	}
-	*/
-
 	public void FlyToAnotherTree() {
 		foreach(PeachTreeLandingPtsCtrler peachTree in peachTrees) {
 			if(peachTree != boidCtrler.perchingTree) {
