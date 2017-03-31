@@ -5,8 +5,9 @@ using UnityEngine;
 public class TakeScreenShotUsingCam : MonoBehaviour {
 
     public Camera cam;
-    public int resWidth = 2550;
-    public int resHeight = 3300;
+    public int resWidth = 5000;
+    public int resHeight = 8000;
+    public KeyCode photoKey = KeyCode.None;
 
     private bool takeHiResShot = false;
 
@@ -31,7 +32,7 @@ public class TakeScreenShotUsingCam : MonoBehaviour {
 
     void LateUpdate()
     {
-        takeHiResShot |= Input.GetKeyDown("k");
+        takeHiResShot |= Input.GetKeyDown(photoKey);
         if (takeHiResShot)
         {
             RenderTexture rt = new RenderTexture(resWidth, resHeight, 24);

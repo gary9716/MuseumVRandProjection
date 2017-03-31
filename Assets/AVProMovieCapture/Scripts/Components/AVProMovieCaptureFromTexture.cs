@@ -125,7 +125,7 @@ public class AVProMovieCaptureFromTexture : AVProMovieCaptureBase
 			case AVProMovieCapturePlugin.PixelFormat.YCbCr422_YUY2:
 				_materialConversion = _materialRGBA2YCbCr;
 				_materialRGBA2YCbCr.SetFloat("flipY", 1.0f);
-				_isTopDown = true;
+				//_isTopDown = true;
 				// If we're capturing uncompressed video in a YCbCr format we don't need to flip Y
 				/*if (_codecIndex < 0)
 				{
