@@ -32,6 +32,7 @@ public class TakeScreenShotUsingCam : MonoBehaviour {
 
     void LateUpdate()
     {
+        //Debug.Log("late update in take photo");
         takeHiResShot |= Input.GetKeyDown(photoKey);
         if (takeHiResShot)
         {
