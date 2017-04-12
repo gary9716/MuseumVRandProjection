@@ -13,8 +13,11 @@ public class OSCClientManager : MonoBehaviour {
 	void Update () {
 		if(Input.GetKeyDown(KeyCode.Y))
         {
-            Debug.Log("send osc to ofSpoutApp");
-            OSCHandler.Instance.SendMessageToOFSpoutApp<string>("video", "test send");
+            OSCHandler.Instance.SendMessageToOFSpoutApp<string>("videoRecord", "start");
+        }
+        else if (Input.GetKeyDown(KeyCode.U))
+        {
+            OSCHandler.Instance.SendMessageToOFSpoutApp<string>("videoRecord", "stop");
         }
         else if (Input.GetKeyDown(KeyCode.H))
         {
