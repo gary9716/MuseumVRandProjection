@@ -38,9 +38,10 @@ v2f vert( appdata_img v )
 	o.uv = v.texcoord.xy;//TRANSFORM_TEX(v.texcoord, _MainTex);
 		
 	// Often in YCbCr modes we need to flip Y
+	
 	if (flipY > 0.0)
 	{
-		o.uv.y = 1-o.uv.y;	
+	//	o.uv.y = 1-o.uv.y;	
 	}
 
 	return o;
@@ -61,20 +62,20 @@ float4 frag (v2f i) : COLOR
 	float4 col = tex2D(_MainTex, uv);
 	float4 col2 = tex2D(_MainTex, uv + texel);
 #endif
+
 	float4 yuv1 = rgb2yuv(col);
 	float4 yuv2 = rgb2yuv(col2);
 
 	float y1 = yuv1.x;
-	float v = saturate((yuv1.y + yuv2.y) * 0.5 + 0.5);
+	float u = saturate((yuv1.y + yuv2.y) * 0.5);
+	float v = saturate((yuv1.z + yuv2.z) * 0.5);
 	float y2 = yuv2.x;
-	float u = saturate((yuv1.z + yuv2.z) * 0.5 + 0.5);
 
 	//UYVY
 	//float4 oCol = float4(u, y1, v, y2);	
 	
 	// YUY2
 	float4 oCol = float4(y1, v, y2, u);
-		
 				
 	return oCol;
 } 

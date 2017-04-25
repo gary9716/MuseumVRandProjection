@@ -10,8 +10,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Linq;
+#if UNITY_EDITOR
 using UnityEditor;
-
+#endif
 namespace Spout{
 
 	[ExecuteInEditMode]
