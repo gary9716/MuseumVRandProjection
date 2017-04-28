@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class DemoSceneVideoRecorder : MonoBehaviour {
-
+    
     public AVProMovieCaptureFromTexture _movieCapture;
     public panoramaController panoramaCtrler;
 
@@ -42,18 +42,18 @@ public class DemoSceneVideoRecorder : MonoBehaviour {
 		if(textureExisted)
         {
 
-            if (Input.GetKeyDown(KeyCode.L))
+            if (Input.GetKeyDown(KeyCode.I))
             {
                 Debug.Log("Start Capturing, fileName:" + _movieCapture.LastFilePath + ",resolution:" + _movieCapture._renderResolution + ",frameRate:" + _movieCapture._frameRate);
 
                 _movieCapture.StartCapture();
             }
-            else if(Input.GetKeyDown(KeyCode.K))
+            else if(Input.GetKeyDown(KeyCode.O))
             {
                 Debug.Log("Cancel Capturing");
                 _movieCapture.CancelCapture();
             }
-            else if(Input.GetKeyDown(KeyCode.J))
+            else if(Input.GetKeyDown(KeyCode.P))
             {
                 Debug.Log("Stop Capturing");
                 _movieCapture.StopCapture();
