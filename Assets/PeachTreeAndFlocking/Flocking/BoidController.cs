@@ -38,8 +38,11 @@ public class BoidController : MonoBehaviour
 
     public float strongAttractDist = 0.3f;
 	public float perchingDist = 0.01f;
-    List<BoidFlocking> boids = new List<BoidFlocking>();
+    public List<string> triggerableTags = new List<string>();
+    HashSet<string> triggerableTagSet;
 
+    List<BoidFlocking> boids = new List<BoidFlocking>();
+    
 	public bool allBoidsPerching {
 		get {
 			return numFlockingInstances == 0;
@@ -65,9 +68,22 @@ public class BoidController : MonoBehaviour
 
 	void Start()
 	{
-        
-		
-	}
+        triggerableTagSet = new HashSet<string>(triggerableTags);
+
+
+    }
+
+    public bool triggerableTag(string tag)
+    {
+        if(triggerableTagSet != null)
+        {
+            return triggerableTagSet.Contains(tag);
+        }
+        else
+        {
+            return false;
+        }
+    }
 
 	public void RandomGenerateBoidInsideCollider(BoidFlocking.State initState) {
 		Collider collider = GetComponent<Collider>();

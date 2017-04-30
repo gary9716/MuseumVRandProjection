@@ -39,9 +39,14 @@ public class LandingSpotController : MonoBehaviour, Landable {
 	/// <param name="other">The other Collider involved in this collision.</param>
 	void OnTriggerEnter(Collider other)
 	{
-		if(boid != null && boid.landingPt == (Landable)this && other.tag == "Hand") {
-			print("triggered");
-			boid.controller.Triggered();
+		if(boid != null && boid.landingPt == (Landable)this) {
+            BoidController boidCtrler = boid.controller;
+            if(boidCtrler.triggerableTag(other.tag))
+            {
+                print("triggered");
+                boid.controller.Triggered();
+            }
+            
 		}
 	}
 }

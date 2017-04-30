@@ -92,6 +92,11 @@ public class BoidFlocking : MonoBehaviour
         this.target = target;
     }
 
+    public void ForcedPerching()
+    {
+        transform.position = target.position;
+    }
+
     public void EnterState(State state) {
         if(state == curState)
             return;
@@ -113,6 +118,7 @@ public class BoidFlocking : MonoBehaviour
         }
         else if(curState == State.approaching) {
             ChangeAvoidMode(false);
+            
         }
         else if(curState == State.flocking) {
             animator.SetBool("isIdle", false);
