@@ -58,6 +58,7 @@ using System.Collections;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
+using VRTK;
 
 public class InputVCR : MonoBehaviour 
 {
@@ -106,12 +107,35 @@ public class InputVCR : MonoBehaviour
 		
 	float playbackTime;
 	
-	public event System.Action finishedPlayback;	// sent when playback finishes
-	
-	/// <summary>
-	/// Start recording. Will append to already started recording
-	/// </summary>
-	public void Record()
+	public event System.Action finishedPlayback;    // sent when playback finishes
+
+    //add VRTK support
+    public bool recordTouchpadPressed;
+    public bool recordTriggerAxis;
+
+
+    public VRTK_ControllerEvents leftCtrlerEventInfo;
+    public VRTK_ControllerEvents rightCtrlerEventInfo;
+    VRTK_ControllerEvents[] ctrlerEventInfos = new VRTK_ControllerEvents[2];
+    string[] vrTouchpadNames = new string[] { "vrLeftTouchpad", "vrRightTouchpad" };
+    string[] vrTriggerNames = new string[] { "vrLeftTrigger", "vrRightTrigger" };
+    string[] vrGrabNames = new string[] { "vrLeftGrab", "vrRightGrab" };
+    
+    private void Awake()
+    {
+        if (leftCtrlerEventInfo == null)
+            leftCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKLeftCtrler").GetComponent<VRTK_ControllerEvents>();
+        if (rightCtrlerEventInfo == null)
+            rightCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKRightCtrler").GetComponent<VRTK_ControllerEvents>();
+        ctrlerEventInfos[0] = leftCtrlerEventInfo;
+        ctrlerEventInfos[1] = rightCtrlerEventInfo;
+    }
+
+
+    /// <summary>
+    /// Start recording. Will append to already started recording
+    /// </summary>
+    public void Record()
 	{
 		if ( currentRecording == null || currentRecording.recordingLength == 0 )
 			NewRecording();
@@ -326,9 +350,34 @@ public class InputVCR : MonoBehaviour
 						input.buttonState = Input.GetButton ( input.inputName );
 					currentRecording.AddInput ( currentFrame, input );
 				}
-				
-				// synced location
-				if ( syncRecordLocations && Time.time > nextPosSyncTime )
+
+                // sync vr properties
+                InputInfo vrInput = new InputInfo();
+
+                //touchpad pressed
+                if(recordTouchpadPressed)
+                {
+                    vrInput.inputName = vrTouchpadNames[0] + "Pressed";
+                    vrInput.buttonState = ctrlerEventInfos[0].touchpadPressed;
+                    currentRecording.AddInput(currentFrame, vrInput);
+                    vrInput.inputName = vrTouchpadNames[1] + "Pressed";
+                    vrInput.buttonState = ctrlerEventInfos[1].touchpadPressed;
+                    currentRecording.AddInput(currentFrame, vrInput);
+                }
+
+                if(recordTriggerAxis)
+                {
+                    vrInput.inputName = vrTriggerNames[0] + "Axis";
+                    vrInput.axisValue = ctrlerEventInfos[0].GetTriggerAxis();
+                    currentRecording.AddInput(currentFrame, vrInput);
+                    vrInput.inputName = vrTriggerNames[1] + "Axis";
+                    vrInput.axisValue = ctrlerEventInfos[1].GetTriggerAxis();
+                    currentRecording.AddInput(currentFrame, vrInput);
+                }
+
+
+                // synced location
+                if ( syncRecordLocations && Time.time > nextPosSyncTime )
 				{
 					SyncPosition ();	// add position to properties
 					nextPosSyncTime = Time.time + 1f / autoSyncLocationRate;
@@ -426,7 +475,39 @@ public class InputVCR : MonoBehaviour
 			return Input.GetMouseButtonUp( buttonNum );
 	}
 	
-	public Vector3 mousePosition
+    public enum LeftRightVar
+    {
+        Left = 0,
+        Right = 1
+    }
+
+    public bool GetVRTouchpadPressed(LeftRightVar var)
+    {
+        string buttonName = vrTouchpadNames[(int)var] + "Pressed";
+        
+        if (_mode == InputVCRMode.Pause)
+            return false;
+        else if (_mode == InputVCRMode.Playback && thisFrameInputs.ContainsKey(buttonName))
+            return thisFrameInputs[buttonName].buttonState;
+        else
+            return ctrlerEventInfos[(int)var].touchpadPressed;
+        
+    }
+
+
+    public float GetTriggerAxis(LeftRightVar var)
+    {
+        string axisName = vrTriggerNames[(int)var] + "Axis";
+        if (_mode == InputVCRMode.Pause)
+            return 0;
+        else if (_mode == InputVCRMode.Playback && thisFrameInputs.ContainsKey(axisName))
+            return thisFrameInputs[axisName].axisValue;
+        else
+            return ctrlerEventInfos[(int)var].GetTriggerAxis();
+    }
+
+
+    public Vector3 mousePosition
 	{	
 		get {
 			if ( _mode == InputVCRMode.Pause )
