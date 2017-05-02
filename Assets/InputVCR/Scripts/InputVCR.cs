@@ -53,7 +53,10 @@
  * 
  */ 
 
+ //add VRTK support by KTChou at 2017/5/2
+
 using UnityEngine;
+using UnityEngine.Events;
 using System.Collections;
 using System.Text;
 using System.IO;
@@ -63,8 +66,9 @@ using VRTK;
 public class InputVCR : MonoBehaviour 
 {
 
-	#region Inspector properties
-	public InputInfo[] inputsToRecord;  // list of axis and button names ( from Input manager) that should be recorded
+    #region Inspector properties
+    public string vcrID;
+    public InputInfo[] inputsToRecord;  // list of axis and button names ( from Input manager) that should be recorded
 	
 	public bool recordMouseEvents;		// whether mouse position/button states should be recorded each frame (mouse axes are separate from this)
 	
@@ -80,7 +84,10 @@ public class InputVCR : MonoBehaviour
 	{
 		get { return _mode; }
 	}
-	#endregion
+
+    public bool recordLocalInfo; //local rotation, local position
+    
+    #endregion
 	
 	float nextPosSyncTime = -1f;
 	float realRecordingTime;
@@ -127,20 +134,42 @@ public class InputVCR : MonoBehaviour
     }
 
     public VRCtrlerInfo[] recordVRInputs;
-
+    public bool recordTeleportEvent;
+    public VRTK_BasicTeleport basicTeleport;
     public VRTK_ControllerEvents leftCtrlerEventInfo;
     public VRTK_ControllerEvents rightCtrlerEventInfo;
     VRTK_ControllerEvents[] ctrlerEventInfos = new VRTK_ControllerEvents[2];
     string[] vrTouchpadNames = new string[] { "vrLeftTouchpad", "vrRightTouchpad" };
     string[] vrTriggerNames = new string[] { "vrLeftTrigger", "vrRightTrigger" };
     string[] vrGrabNames = new string[] { "vrLeftGrab", "vrRightGrab" };
-    
+
+    //add some event-driven mechanism
+    UnityEvent PlaybackStart = new UnityEvent(); //instead of continuing from pause state, it start playing a recording from certain timestamp.
+    UnityEvent PlaybackStop = new UnityEvent(); //a recording stopped(either stopped by someone and it reach the end)
+    UnityEvent NewRecordingStart = new UnityEvent();
+    UnityEvent RecordingStop = new UnityEvent();
+
+    //feel free to add other kinds of event
+
+    public void OnTeleported(object sender, DestinationMarkerEventArgs destMarkerEventInfo)
+    {
+        SyncProperty("teleported", "1");
+    }
+
     private void Awake()
     {
+        if (basicTeleport == null)
+            basicTeleport = GameObject.FindGameObjectWithTag("VRTKTeleport").GetComponent<VRTK_BasicTeleport>();
+
+        if(basicTeleport != null && recordTeleportEvent)
+            basicTeleport.Teleported += OnTeleported;
+        
         if (leftCtrlerEventInfo == null)
             leftCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKLeftCtrler").GetComponent<VRTK_ControllerEvents>();
+
         if (rightCtrlerEventInfo == null)
             rightCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKRightCtrler").GetComponent<VRTK_ControllerEvents>();
+
         ctrlerEventInfos[0] = leftCtrlerEventInfo;
         ctrlerEventInfos[1] = rightCtrlerEventInfo;
     }
@@ -171,7 +200,10 @@ public class InputVCR : MonoBehaviour
 		nextPropertiesToRecord.Clear ();
 		
 		_mode = InputVCRMode.Record;
-	}
+
+        NewRecordingStart.Invoke();
+
+    }
 	
 	/// <summary>
 	/// Start playing back the current recording, if present.
@@ -208,6 +240,8 @@ public class InputVCR : MonoBehaviour
 		
 		_mode = InputVCRMode.Playback;
 		playbackTime = startRecordingFromTime;
+
+        PlaybackStart.Invoke();
 	}
 	
 	/// <summary>
@@ -223,6 +257,15 @@ public class InputVCR : MonoBehaviour
 	/// </summary>
 	public void Stop()
 	{			
+        if(_mode == InputVCRMode.Playback)
+        {
+            PlaybackStop.Invoke();
+        }
+        else if(_mode == InputVCRMode.Record)
+        {
+            RecordingStop.Invoke();
+        }
+
 		_mode = InputVCRMode.Passthru;
 		currentFrame = 0;
 		playbackTime = 0;
@@ -232,7 +275,7 @@ public class InputVCR : MonoBehaviour
 	/// Records the location/rotation of this object during a recording, so when it is played back, object is sure to be here.
 	/// Use this if you have drift(and don't want it) in your recordings due to physics/other external inputs.
 	/// </summary>
-	public void SyncPosition()
+	public void SyncPositionAndRotation()
 	{
 		if ( mode != InputVCRMode.Record )
 		{
@@ -240,8 +283,8 @@ public class InputVCR : MonoBehaviour
 			return;
 		}
 		
-		SyncProperty( "position", Vector3ToString ( transform.position ) );
-		SyncProperty( "rotation", Vector3ToString ( transform.eulerAngles ) );
+		SyncProperty( "position", Vector3ToString ( recordLocalInfo? transform.localPosition : transform.position ) );
+		SyncProperty( "rotation", Vector3ToString ( recordLocalInfo? transform.localEulerAngles : transform.eulerAngles ) );
 	}
 	
 	/// <summary>
@@ -310,16 +353,21 @@ public class InputVCR : MonoBehaviour
 						}
 					}
 				
+                    //no interpolation
 					if ( snapToSyncedLocation )	// custom code more effective, but this is enough sometimes
 					{
-						string posString = currentRecording.GetProperty ( frame, "position" );
+                        Vector3 resultPos = recordLocalInfo ? transform.localPosition : transform.position;
+                        Vector3 resultAngles = recordLocalInfo ? transform.localEulerAngles : transform.eulerAngles;
+                        string posString = currentRecording.GetProperty ( frame, "position" );
 						if ( !string.IsNullOrEmpty ( posString ) )
-							transform.position = ParseVector3 ( posString );
+							resultPos = ParseVector3 ( posString );
 						
 						string rotString = currentRecording.GetProperty ( frame, "rotation" );
 						if ( !string.IsNullOrEmpty( rotString ) )
-							transform.eulerAngles = ParseVector3 ( rotString );
-					}
+							resultAngles = ParseVector3 ( rotString );
+                        SetPosAndRot(resultPos, resultAngles);
+
+                    }
 				}
 				
 				// update input to be used tihs frame
@@ -393,7 +441,7 @@ public class InputVCR : MonoBehaviour
                 // synced location
                 if ( syncRecordLocations && Time.time > nextPosSyncTime )
 				{
-					SyncPosition ();	// add position to properties
+					SyncPositionAndRotation ();	// add position to properties
 					nextPosSyncTime = Time.time + 1f / autoSyncLocationRate;
 				}
 				
@@ -406,10 +454,26 @@ public class InputVCR : MonoBehaviour
 			}
 		}
 	}
-	
-	// These methods replace those in Input, so that this object can ignore whether it is record
-	#region Input replacements
-	public bool GetButton( string buttonName )
+
+    void SetPosAndRot(Vector3 pos, Vector3 eulerAngles)
+    {
+        if (recordLocalInfo)
+        {
+            transform.localPosition = pos;
+            transform.localEulerAngles = eulerAngles;
+        }
+        else
+        {
+            transform.position = pos;
+            transform.eulerAngles = eulerAngles;
+        }
+    }
+
+
+
+    // These methods replace those in Input, so that this object can ignore whether it is record
+    #region Input replacements
+    public bool GetButton( string buttonName )
 	{
 		if ( _mode == InputVCRMode.Pause )
 			return false;
