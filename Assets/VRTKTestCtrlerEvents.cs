@@ -20,7 +20,7 @@ public class VRTKTestCtrlerEvents : MonoBehaviour {
         if (leftCtrlerEventInfo.touchpadPressed)
             print("left: touchPad pressed");
 
-
+        print("left trigger:" + leftCtrlerEventInfo.GetTriggerAxis());
 
         if (leftCtrlerEventInfo.grabPressed)
             print("left: grab pressed");
