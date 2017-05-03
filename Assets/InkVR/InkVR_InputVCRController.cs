@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System;
 using UnityEngine;
 using LitJson;
 
@@ -12,6 +13,8 @@ public class InkVR_InputVCRController : MonoBehaviour {
     Dictionary<string, InputVCR> vcrDict;
     Dictionary<string, Recording> recordingDict;
     string recordingsPath;
+    InputVCR vcrEventNotifier;
+
 
     private bool isRecording;
     private bool isPlaying;
@@ -90,13 +93,14 @@ public class InkVR_InputVCRController : MonoBehaviour {
         {
             isPlaying = true;
         }
-        else if(action == VCRAction.Record)
+        else if(action == VCRAction.Record || action == VCRAction.NewRecording)
         {
             isRecording = true;
         }
-        else if(action == VCRAction.Pause)
+        else if (action == VCRAction.Pause || action == VCRAction.Stop)
         {
             isPlaying = false;
+            isRecording = false;
         }
     }
 
@@ -115,14 +119,19 @@ public class InkVR_InputVCRController : MonoBehaviour {
         }
     }
 
+    string currentRecordingName = "";
 
-    public void StartRecording()
+    public void ToggleRecording()
     {
         if (isRecording)
+        {
             DoToAllVCR(VCRAction.Stop);
+            SaveRecord(currentRecordingName);
+        }
         else
         {
             DoToAllVCR(VCRAction.NewRecording);
+            currentRecordingName = DateTime.Now.ToString("yyyy-MM-dd_H;mm;ss_vcrRecord");
         }
         
     }
@@ -150,6 +159,16 @@ public class InkVR_InputVCRController : MonoBehaviour {
         {
             vcrDict.Add(vcr.vcrID, vcr);
         }
+        
+        if(allVCR.Count > 0)
+        {
+            vcrEventNotifier = allVCR[0];
+            vcrEventNotifier.finishedPlayback += PlaybackEnd;
+            
+        }
+            
+
+        DoToAllVCR(VCRAction.Stop);
     }
 
     /*
@@ -210,5 +229,68 @@ public class InkVR_InputVCRController : MonoBehaviour {
         }
 
     }
-   
+
+    bool inRandPlaybackMode = false;
+
+    public void SetAutoRandomPlayback(bool enable)
+    {
+        inRandPlaybackMode = enable;
+        if (enable)
+        {
+            PlayNextRecording();
+        }
+        else
+        {
+            DoToAllVCR(VCRAction.Stop);
+        }
+    }
+
+    void PlaybackEnd()
+    {
+        if(inRandPlaybackMode)
+        {
+            Invoke("PlayNextRecording", 5);
+        }
+    }
+
+
+    string nextPlayRecordName = "";
+    bool nextPlayDecided = false;
+
+    void SetNextPlayRecord(string fileName)
+    {
+        if(fileName != null)
+        {
+            nextPlayRecordName = fileName;
+            LoadRecord(nextPlayRecordName);
+            nextPlayDecided = true;
+        }
+    }
+
+    void PlayNextRecording()
+    {
+        nextPlayDecided = false;
+        string tempBuf = null;
+        string[] recordings = Directory.GetFiles(recordingsPath);
+        for(int i = 0;i < 5;i++)
+        {
+            int index = UnityEngine.Random.Range(0, recordings.Length - 1);
+            if(index >= 0)
+                tempBuf = recordings[index];
+            if (tempBuf != nextPlayRecordName)
+            {
+                SetNextPlayRecord(tempBuf);
+                break;
+            }
+        }
+
+        if(!nextPlayDecided)
+            SetNextPlayRecord(tempBuf);
+
+        if(nextPlayDecided)
+            DoToAllVCR(VCRAction.Play);
+        
+        return;
+        
+    }
 }
