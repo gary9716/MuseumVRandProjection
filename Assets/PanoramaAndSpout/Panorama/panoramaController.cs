@@ -7,6 +7,7 @@ public class panoramaController : MonoBehaviour {
 
     public Transform camsRoot;
     public Camera cam;
+    public FromSameView fromSameView;
 
     Camera[] allCams;
     float widthProportion;
@@ -46,7 +47,7 @@ public class panoramaController : MonoBehaviour {
             if (audioListener != null)
                 Destroy(audioListener);
 
-            FromSameView fromSameView = cam.GetComponent<FromSameView>();
+            
             if (fromSameView != null)
                 fromSameView.enabled = false;
 
@@ -65,11 +66,8 @@ public class panoramaController : MonoBehaviour {
             }
 
             if (fromSameView != null)
-            {
-                fromSameView.isFollowing = true;
                 fromSameView.enabled = true;
-            }
-
+            
             UpdateCams();
 
         }

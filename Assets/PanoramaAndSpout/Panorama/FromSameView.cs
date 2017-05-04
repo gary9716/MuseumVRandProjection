@@ -4,14 +4,23 @@ using UnityEngine;
 
 public class FromSameView : MonoBehaviour {
 
+    public bool autoFollowAfterEnabled;
+
     [HideInInspector]
     public bool isFollowing = false;
     public Transform target;
     public bool onlyHorizontalRotate;
 
+
+    private void OnEnable()
+    {
+        if(autoFollowAfterEnabled)
+            isFollowing = true;
+    }
+
     private void LateUpdate()
     {
-        if(isFollowing)
+        if(isFollowing && target != null)
         {
             transform.position = target.position;
             if (onlyHorizontalRotate)
