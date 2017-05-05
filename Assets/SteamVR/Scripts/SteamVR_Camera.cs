@@ -68,11 +68,20 @@ public class SteamVR_Camera : MonoBehaviour
 			t.parent = origin;
 
 			while (head.childCount > 0)
-				head.GetChild(0).parent = t;
+            {
+                Transform child = head.GetChild(0);
+                InputVCR vcr = child.GetComponent<InputVCR>();
+                if (vcr)
+                {
+                    vcr.originalParent = t;
+                }
 
-			// Keep the head around, but parent to the camera now since it moves with the hmd
-			// but existing content may still have references to this object.
-			head.parent = t;
+                child.parent = t;
+            }
+
+            // Keep the head around, but parent to the camera now since it moves with the hmd
+            // but existing content may still have references to this object.
+            head.parent = t;
 			head.localPosition = Vector3.zero;
 			head.localRotation = Quaternion.identity;
 			head.localScale = Vector3.one;

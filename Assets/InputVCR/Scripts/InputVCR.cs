@@ -91,8 +91,8 @@ public class InputVCR : MonoBehaviour
 	
 	float nextPosSyncTime = -1f;
 	float realRecordingTime;
-	
-	Recording currentRecording;		// the recording currently in the VCR. Copy or ToString() this to save.
+	[HideInInspector]
+	public Recording currentRecording;		// the recording currently in the VCR. Copy or ToString() this to save.
 	public float currentTime{
 		get {
 			return currentFrame / (float)currentFrameRate; }
@@ -145,6 +145,9 @@ public class InputVCR : MonoBehaviour
 
     [HideInInspector]
     public Transform originalParent;
+    
+    public Vector3 initLocalPos;
+    public Quaternion initLocalRot;
 
     //add some event-driven mechanism
     UnityEvent PlaybackStart = new UnityEvent(); //instead of continuing from pause state, it start playing a recording from certain timestamp.
@@ -162,19 +165,33 @@ public class InputVCR : MonoBehaviour
     private void Awake()
     {
         originalParent = transform.parent;
-
+        initLocalPos = transform.localPosition;
+        initLocalRot = transform.localRotation;
+        
         if (basicTeleport == null)
-            basicTeleport = GameObject.FindGameObjectWithTag("VRTKTeleport").GetComponent<VRTK_BasicTeleport>();
-
+        {
+            var GO = GameObject.FindGameObjectWithTag("VRTKTeleport");
+            if(GO)
+                basicTeleport = GO.GetComponent<VRTK_BasicTeleport>();
+        }
+        
         if(basicTeleport != null && recordTeleportEvent)
             basicTeleport.Teleported += OnTeleported;
         
         if (leftCtrlerEventInfo == null)
-            leftCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKLeftCtrler").GetComponent<VRTK_ControllerEvents>();
-
+        {
+            var GO = GameObject.FindGameObjectWithTag("VRTKLeftCtrler");
+            if (GO)
+                leftCtrlerEventInfo = GO.GetComponent<VRTK_ControllerEvents>();
+        }
+        
         if (rightCtrlerEventInfo == null)
-            rightCtrlerEventInfo = GameObject.FindGameObjectWithTag("VRTKRightCtrler").GetComponent<VRTK_ControllerEvents>();
-
+        {
+            var GO = GameObject.FindGameObjectWithTag("VRTKRightCtrler");
+            if (GO)
+                rightCtrlerEventInfo = GO.GetComponent<VRTK_ControllerEvents>();
+        }
+        
         ctrlerEventInfos[0] = leftCtrlerEventInfo;
         ctrlerEventInfos[1] = rightCtrlerEventInfo;
     }
@@ -240,10 +257,10 @@ public class InputVCR : MonoBehaviour
 		currentRecording = new Recording( recording );
 		currentFrame = recording.GetClosestFrame ( startRecordingFromTime );
 		
-		thisFrameInputs.Clear ();
-		lastFrameInputs.Clear ();
-		
-		_mode = InputVCRMode.Playback;
+        thisFrameInputs.Clear();
+        lastFrameInputs.Clear();
+        
+        _mode = InputVCRMode.Playback;
 		playbackTime = startRecordingFromTime;
 
         PlaybackStart.Invoke();
@@ -287,7 +304,7 @@ public class InputVCR : MonoBehaviour
 			Debug.LogWarning ( "Tried to record location, but VCR isn't recording" );
 			return;
 		}
-		
+        
 		SyncProperty( "position", Vector3ToString ( recordLocalInfo? transform.localPosition : transform.position ) );
 		SyncProperty( "rotation", Vector3ToString ( recordLocalInfo? transform.localEulerAngles : transform.eulerAngles ) );
 	}
@@ -320,9 +337,13 @@ public class InputVCR : MonoBehaviour
 	{
 		return new Recording( currentRecording );
 	}
-	
-	void LateUpdate()
-	{	
+
+    Dictionary<string, InputInfo> changedInputs = new Dictionary<string, InputInfo>();
+
+    void LateUpdate()
+	{
+        //print("late update in vcr");
+
 		if ( _mode == InputVCRMode.Playback )
 		{
 			// update last frame and this frame
@@ -341,22 +362,23 @@ public class InputVCR : MonoBehaviour
 			}
 			else
 			{
-				// go through all changes in recorded input since last frame
-				var changedInputs = new Dictionary<string, InputInfo>();
-				for( int frame = lastFrame + 1; frame <= currentFrame; frame++ )
+                changedInputs.Clear();
+                // go through all changes in recorded input since last frame
+                for ( int frame = lastFrame + 1; frame <= currentFrame; frame++ )
 				{
-					foreach( InputInfo input in currentRecording.GetInputs ( frame ) )
-					{
-						// thisFrameInputs only updated once per game frame, so all changes, no matter how brief, will be marked
-						// if button has changed
-						if ( !thisFrameInputs.ContainsKey ( input.inputName ) || !thisFrameInputs[input.inputName].Equals( input ) )
-						{
-							if ( changedInputs.ContainsKey ( input.inputName ) )
-								changedInputs[input.inputName] = input;
-							else
-								changedInputs.Add( input.inputName, input );
-						}
-					}
+                    if (inputsToRecord.Length > 0)
+                        foreach ( InputInfo input in currentRecording.GetInputs ( frame ) )
+					    {
+						    // thisFrameInputs only updated once per game frame, so all changes, no matter how brief, will be marked
+						    // if button has changed
+						    if ( !thisFrameInputs.ContainsKey ( input.inputName ) || !thisFrameInputs[input.inputName].Equals( input ) )
+						    {
+							    if ( changedInputs.ContainsKey ( input.inputName ) )
+								    changedInputs[input.inputName] = input;
+							    else
+								    changedInputs.Add( input.inputName, input );
+						    }
+					    }
 				
                     //no interpolation
 					if ( snapToSyncedLocation )	// custom code more effective, but this is enough sometimes
@@ -418,13 +440,11 @@ public class InputVCR : MonoBehaviour
 					currentRecording.AddInput ( currentFrame, input );
 				}
 
-                // sync vr properties
-                InputInfo vrInput = new InputInfo();
-
-
+                //KT edited: sync vr properties
                 foreach(VRCtrlerInfo ctrlerInfo in recordVRInputs)
                 {
-                    int varVal = (int)ctrlerInfo.var;
+                    InputInfo vrInput = new InputInfo();
+                    int varVal = (int)ctrlerInfo.var; //left or right
 
                     if (varVal < 2)
                     {
@@ -446,6 +466,7 @@ public class InputVCR : MonoBehaviour
                 // synced location
                 if ( syncRecordLocations && Time.time > nextPosSyncTime )
 				{
+                    //KT edited: sync local info or world info
 					SyncPositionAndRotation ();	// add position to properties
 					nextPosSyncTime = Time.time + 1f / autoSyncLocationRate;
 				}

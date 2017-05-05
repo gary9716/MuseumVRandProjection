@@ -13,12 +13,24 @@ public class OSCClientManager : MonoBehaviour {
 	void Update () {
 		if (Input.GetKeyDown(KeyCode.H))
         {
-            OSCHandler.Instance.SendMessageToOFSpoutApp<string>("winCtrl", "hide");
+            sendHideProjectionMsg();
         }
         else if (Input.GetKeyDown(KeyCode.J))
         {
-            OSCHandler.Instance.SendMessageToOFSpoutApp<string>("winCtrl", "show");
+            sendShowProjectionMsg();
         }
 
     }
+
+    public void sendShowProjectionMsg()
+    {
+        OSCHandler.Instance.SendMessageToOFSpoutApp<string>("winCtrl", "show");
+    }
+
+    public void sendHideProjectionMsg()
+    {
+        OSCHandler.Instance.SendMessageToOFSpoutApp<string>("winCtrl", "hide");
+    }
+
+
 }

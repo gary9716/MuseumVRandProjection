@@ -7,7 +7,8 @@ using Valve.VR;
 public enum AppMode
 {
     VR = 0,
-    Video = 1
+    Video = 1,
+    Unknown
 };
 
 public enum InputVCRMode
@@ -25,7 +26,8 @@ public class InkVRAppCtrler : MonoBehaviour {
     public GameObject entranceSceneUI;
     public AppMode mode;
     public string mainSceneName;
-    public bool disableVRExplicitly;
+    public bool disableVRInVideoMode;
+    public bool autoPlayVideo;
 
     [Header("main scene")]
     public InkVR_InputVCRController vcrCtrler;
@@ -65,7 +67,7 @@ public class InkVRAppCtrler : MonoBehaviour {
     {
         Destroy(entranceSceneUI);
         
-        if(disableVRExplicitly && mode == AppMode.Video)
+        if(disableVRInVideoMode && mode == AppMode.Video)
         {
             SteamVR.SafeDispose();
             SteamVR.enabled = false;
@@ -84,15 +86,14 @@ public class InkVRAppCtrler : MonoBehaviour {
         if(scene.name == mainSceneName)
         {
             initInMainScene();
+            
+            vcrCtrler.SetupForAppMode(mode);
 
-            uiManager.SetAppModeTxt(mode);
-
-            //if (mode == AppMode.Video)
-                //vcrCtrler.SetAutoRandomPlayback(true);
+            if (autoPlayVideo && mode == AppMode.Video)
+                vcrCtrler.SetAutoRandomPlayback(true);
 
         }
-
-
+        
     }
     
     void initInMainScene()
