@@ -28,7 +28,7 @@ public class BoidFlocking : MonoBehaviour
 
     public Landable landingPt;
 
-    Transform target;
+    public Transform target;
 
     IEnumerator Start()
 	{

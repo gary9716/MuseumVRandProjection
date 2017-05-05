@@ -30,7 +30,7 @@ public class BoidController : MonoBehaviour
     [Range(0, 20)]
     public float alignFactor = 0.5f;
 
-    [Range(0, 20)]
+    [Range(0, 50)]
     public float attractFactor = 1f;
 
     [Range(0, 5)]
@@ -55,15 +55,20 @@ public class BoidController : MonoBehaviour
 	bool canBeTriggered = true;
 
 	public void Triggered() {
+        print("flocking:" + numFlockingInstances);
+        
 		if(!canBeTriggered || !allBoidsPerching) 
 			return;
 
 		canBeTriggered = false;
 
-		if(peachTreesManager != null)
-			peachTreesManager.FlyToAnotherTree();
+		if(peachTreesManager != null && perchingTree != null)
+        {
+            print("fly to another tree");
+            peachTreesManager.FlyToAnotherTree();
+        }
 
-		canBeTriggered = true;
+        canBeTriggered = true;
 	}
 
 	void Start()
@@ -122,32 +127,36 @@ public class BoidController : MonoBehaviour
 		perchingTree = peachTree;
 	}
 
+    PeachTreeLandingPtsCtrler targetTree = null;
+
 	public void FlyToTree(PeachTreeLandingPtsCtrler peachTree, bool scattered = true) {
 		
-		if(peachTree == perchingTree)
+		if(perchingTree == null || peachTree == perchingTree)
 			return;
-		
+        
 		foreach(Landable landable in perchingTree.landablePts) {
 			landable.ReleaseAll();
 		}
 
-		perchingTree = peachTree;
-
-		if(scattered) 
+        perchingTree = null;
+        targetTree = peachTree;
+        
+        if (scattered) 
 			cohesionFactor = -Mathf.Abs(cohesionFactor);
 		else
 			cohesionFactor = Mathf.Abs(cohesionFactor);
-		
+
+        
 		foreach(BoidFlocking boid in boids) {
 			Landable landable = peachTree.GetOneLandablePt();
 			if(landable == null) {
-				Debug.Log("not enough landing pts QAQ");
+				Debug.LogError("not enough landing pts QAQ");
 				break;
 			}
-			landable.TargetBy(boid);
+            landable.TargetBy(boid);
 			boid.EnterState(BoidFlocking.State.flocking);
 		}
-
+        
 		if(cohesionFactor < 0)
 			Invoke("RecoverCoherent", 1);
 	}
@@ -155,9 +164,7 @@ public class BoidController : MonoBehaviour
 	void RecoverCoherent() {
 		cohesionFactor = Mathf.Abs(cohesionFactor);
 	}
-
-
-
+    
 	[HideInInspector]
 	public int numFlockingInstances = 0;
 
@@ -166,6 +173,7 @@ public class BoidController : MonoBehaviour
 		Vector3 center = Vector3.zero;
 		Vector3 velocity = Vector3.zero;
 		numFlockingInstances = 0;
+        
 		foreach (BoidFlocking boid in boids)
 		{
 			if(boid.curState == BoidFlocking.State.flocking) {
@@ -179,6 +187,10 @@ public class BoidController : MonoBehaviour
 			flockCenter = center / numFlockingInstances;
 			flockVelocity = velocity / numFlockingInstances;
 		}
+        else if(targetTree != null)
+        {
+            perchingTree = targetTree;
+        }
 
     }
 

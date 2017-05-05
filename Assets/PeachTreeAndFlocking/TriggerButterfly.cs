@@ -5,6 +5,7 @@ using UnityEngine;
 public class TriggerButterfly : MonoBehaviour {
 
     public BoidController boidCtrler;
+    public PeachTreeLandingPtsCtrler nearTree;
 
 	// Use this for initialization
 	void Start () {
@@ -14,7 +15,7 @@ public class TriggerButterfly : MonoBehaviour {
 	
     private void OnTriggerEnter(Collider other)
     {
-        if (boidCtrler != null && boidCtrler.triggerableTag(other.tag))
+        if (boidCtrler != null && boidCtrler.perchingTree == nearTree && boidCtrler.triggerableTag(other.tag))
         {
             print("triggered from root");
             boidCtrler.Triggered();
