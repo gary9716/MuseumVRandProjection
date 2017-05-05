@@ -33,9 +33,15 @@ public class SteamVR_TrackedObject : MonoBehaviour
 	public EIndex index;
 	public Transform origin; // if not set, relative to parent
     public bool isValid = false;
+    public InkVR_InputVCRController vcrCtrler;
 
 	private void OnNewPoses(TrackedDevicePose_t[] poses)
 	{
+        if(vcrCtrler != null && vcrCtrler.GetVCRMode() == InputVCRMode.Playback)
+        {
+            return;
+        }
+
 		if (index == EIndex.None)
 			return;
 
@@ -72,7 +78,8 @@ public class SteamVR_TrackedObject : MonoBehaviour
 	void Awake()
 	{
 		newPosesAction = SteamVR_Events.NewPosesAction(OnNewPoses);
-	}
+        vcrCtrler = FindObjectOfType<InkVR_InputVCRController>();
+    }
 
 	void OnEnable()
 	{

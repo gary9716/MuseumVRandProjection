@@ -143,6 +143,9 @@ public class InputVCR : MonoBehaviour
     string[] vrTriggerNames = new string[] { "vrLeftTrigger", "vrRightTrigger" };
     string[] vrGrabNames = new string[] { "vrLeftGrab", "vrRightGrab" };
 
+    [HideInInspector]
+    public Transform originalParent;
+
     //add some event-driven mechanism
     UnityEvent PlaybackStart = new UnityEvent(); //instead of continuing from pause state, it start playing a recording from certain timestamp.
     UnityEvent PlaybackStop = new UnityEvent(); //a recording stopped(either stopped by someone and it reach the end)
@@ -158,6 +161,8 @@ public class InputVCR : MonoBehaviour
 
     private void Awake()
     {
+        originalParent = transform.parent;
+
         if (basicTeleport == null)
             basicTeleport = GameObject.FindGameObjectWithTag("VRTKTeleport").GetComponent<VRTK_BasicTeleport>();
 
@@ -631,12 +636,4 @@ public class InputVCR : MonoBehaviour
 		
 		return Vector3.zero;
 	}
-}
-
-public enum InputVCRMode
-{
-	Passthru,	// normal input
-	Record,
-	Playback,
-	Pause
 }

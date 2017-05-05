@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.IO;
 using System;
+using System.Linq;
 using UnityEngine;
 using LitJson;
 
@@ -10,14 +11,26 @@ public class InkVR_InputVCRController : MonoBehaviour {
 
     public string recordFolderName;
     public List<InputVCR> allVCR;
+
+    public SteamVR_TrackedObject leftCtrler;
+    public SteamVR_TrackedObject rightCtrler;
+    public SteamVR_TrackedObject head;
+    public SteamVR_Camera vrCam;
+
+    public string defaultRecordName;
+    public bool enableKeyCtrlFunc;
+
+    public DemoSceneUIManager uiManager;
+    public Transform vcrPlaybackModeParent;
+
     Dictionary<string, InputVCR> vcrDict;
     Dictionary<string, Recording> recordingDict;
     string recordingsPath;
     InputVCR vcrEventNotifier;
 
 
-    private bool isRecording;
-    private bool isPlaying;
+    private bool isRecording = false;
+    private bool isPlaying = false;
 
     string fileExtensionName = ".json";
 
@@ -48,35 +61,7 @@ public class InkVR_InputVCRController : MonoBehaviour {
             }
             else if(action == VCRAction.Play)
             {
-                Recording recording = null;
-                Recording[] recordingChosenOrder = null;
-                
-                if (chooseCurrentRecordingFirst)
-                {
-                    recordingChosenOrder[0] = vcr.GetRecording();
-                    recordingChosenOrder[1] = recordingDict[vcr.vcrID];
-
-                }
-                else
-                {
-                    recordingChosenOrder[1] = vcr.GetRecording();
-                    recordingChosenOrder[0] = recordingDict[vcr.vcrID];
-                }
-
-                recording = recordingChosenOrder[0];
-                if (recording != null)
-                    vcr.Play(recording, 0);
-                else
-                {
-                    recording = recordingChosenOrder[1];
-                    if (recording != null)
-                        vcr.Play(recording, 0);
-                    else
-                    {
-                        Debug.LogWarning("one of recording is null");
-                    }
-                }
-                
+                PlayRecordsBasedOnChosenOrder(vcr);
             }
             else if(action == VCRAction.Record)
             {
@@ -88,6 +73,8 @@ public class InkVR_InputVCRController : MonoBehaviour {
             }
             
         }
+
+        print("start vcr action:" + action.ToString());
 
         if(action == VCRAction.Play)
         {
@@ -102,19 +89,54 @@ public class InkVR_InputVCRController : MonoBehaviour {
             isPlaying = false;
             isRecording = false;
         }
+
+        if (uiManager != null)
+            uiManager.SetVCRStateTxt(GetVCRMode());
+
     }
 
-
-    public void StartPlaying()
+    void PlayRecordsBasedOnChosenOrder(InputVCR vcr)
     {
-        if (isPlaying)
+        Recording recording = null;
+        Recording[] recordingChosenOrder = null;
+
+        if (chooseCurrentRecordingFirst)
         {
-            // pause
-            DoToAllVCR(VCRAction.Pause);
+            recordingChosenOrder[0] = vcr.GetRecording();
+            recordingChosenOrder[1] = recordingDict[vcr.vcrID];
         }
         else
         {
-            // unpause
+            recordingChosenOrder[1] = vcr.GetRecording();
+            recordingChosenOrder[0] = recordingDict[vcr.vcrID];
+        }
+
+        recording = recordingChosenOrder[0];
+        if (recording != null)
+            vcr.Play(recording, 0);
+        else
+        {
+            recording = recordingChosenOrder[1];
+            if (recording != null)
+                vcr.Play(recording, 0);
+            else
+            {
+                Debug.LogWarning("one of recording is null");
+            }
+        }
+    }
+
+
+    public void TogglePlaying()
+    {
+        if (isPlaying)
+        {
+            // stop
+            DoToAllVCR(VCRAction.Stop);
+        }
+        else
+        {
+            // play
             DoToAllVCR(VCRAction.Play);
         }
     }
@@ -131,14 +153,36 @@ public class InkVR_InputVCRController : MonoBehaviour {
         else
         {
             DoToAllVCR(VCRAction.NewRecording);
-            currentRecordingName = DateTime.Now.ToString("yyyy-MM-dd_H;mm;ss_vcrRecord");
+            currentRecordingName = DateTime.Now.ToString("yyyy-MM-dd_H;mm;ss") + "_vcrRecord";
         }
         
     }
+    
+    public InputVCRMode GetVCRMode()
+    {
+        if (allVCR != null && allVCR.Count > 0)
+            return allVCR[0].mode;
+        else
+            return InputVCRMode.Passthru;
+    }
+
+    /*
+    public void initAppCtrler(InkVRAppCtrler appCtrler)
+    {
+        this.appCtrler = appCtrler;
+    }
+    */
 
     private void Awake()
     {
-        if(string.IsNullOrEmpty(recordFolderName))
+        if(allVCR.Count == 0)
+        {
+            Debug.LogWarning("no vcr set, disabled");
+            this.enabled = false;
+            return;
+        }
+        
+        if (string.IsNullOrEmpty(recordFolderName))
         {
             recordFolderName = "inputVCRRecords";
         }
@@ -160,26 +204,25 @@ public class InkVR_InputVCRController : MonoBehaviour {
             vcrDict.Add(vcr.vcrID, vcr);
         }
         
-        if(allVCR.Count > 0)
-        {
-            vcrEventNotifier = allVCR[0];
-            vcrEventNotifier.finishedPlayback += PlaybackEnd;
-            
-        }
-            
-
+        vcrEventNotifier = allVCR[0];
+        vcrEventNotifier.finishedPlayback += PlaybackEnd;
+        
         DoToAllVCR(VCRAction.Stop);
-    }
 
-    /*
+    }
+    
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.P))
-            StartPlay();
+        if(enableKeyCtrlFunc)
+        {
+            if (Input.GetKeyDown(KeyCode.P))
+                TogglePlaying();
+            else if (Input.GetKeyDown(KeyCode.R))
+                ToggleRecording();
+        }
+        
     }
-    */
-
-
+    
     public bool allVCRAreHoldingRecording()
     {
         foreach(InputVCR vcr in allVCR)
@@ -202,6 +245,11 @@ public class InkVR_InputVCRController : MonoBehaviour {
         {
             Debug.LogWarning("some vcr weren't holding recording");
             return;
+        }
+
+        if(string.IsNullOrEmpty(fileName))
+        {
+            fileName = defaultRecordName;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -232,15 +280,25 @@ public class InkVR_InputVCRController : MonoBehaviour {
 
     bool inRandPlaybackMode = false;
 
+    void ConfigAllVCRParent (InputVCRMode vcrMode)
+    {
+        foreach(InputVCR vcr in allVCR)
+        {
+            SetVCRParent(vcr, vcrMode);
+        }
+    }
+
     public void SetAutoRandomPlayback(bool enable)
     {
         inRandPlaybackMode = enable;
         if (enable)
         {
+            ConfigAllVCRParent(InputVCRMode.Playback);
             PlayNextRecording();
         }
         else
         {
+            ConfigAllVCRParent(InputVCRMode.Passthru);
             DoToAllVCR(VCRAction.Stop);
         }
     }
@@ -251,10 +309,13 @@ public class InkVR_InputVCRController : MonoBehaviour {
         {
             Invoke("PlayNextRecording", 5);
         }
+
+        lastPlayRecordName = nextPlayRecordName;
     }
 
 
     string nextPlayRecordName = "";
+    string lastPlayRecordName = "";
     bool nextPlayDecided = false;
 
     void SetNextPlayRecord(string fileName)
@@ -267,30 +328,62 @@ public class InkVR_InputVCRController : MonoBehaviour {
         }
     }
 
+    List<string> allRecordingFileNames = new List<string>();
+    List<string> GetAllRecordings()
+    {
+        allRecordingFileNames.Clear();
+        string[] allFileNames = Directory.GetFiles(recordingsPath);
+        foreach (string fileName in allRecordingFileNames)
+        {
+            if(Path.GetExtension(fileName) == fileExtensionName)
+            {
+                allRecordingFileNames.Add(fileName);
+            }
+        }
+        
+        return allRecordingFileNames;
+    }
+    
     void PlayNextRecording()
     {
         nextPlayDecided = false;
         string tempBuf = null;
-        string[] recordings = Directory.GetFiles(recordingsPath);
-        for(int i = 0;i < 5;i++)
+
+        var myFiles = GetAllRecordings();
+        for (int i = 0;i < 5;i++)
         {
-            int index = UnityEngine.Random.Range(0, recordings.Length - 1);
-            if(index >= 0)
-                tempBuf = recordings[index];
-            if (tempBuf != nextPlayRecordName)
+            int randIndex = UnityEngine.Random.Range(0, myFiles.Count);
+            tempBuf = myFiles[randIndex];
+            if(tempBuf != lastPlayRecordName)
             {
                 SetNextPlayRecord(tempBuf);
-                break;
             }
+            
         }
-
+        
         if(!nextPlayDecided)
             SetNextPlayRecord(tempBuf);
 
         if(nextPlayDecided)
             DoToAllVCR(VCRAction.Play);
-        
+        else
+        {
+            Debug.LogWarning("failed to play next recording");
+        }
+
         return;
         
+    }
+
+    void SetVCRParent(InputVCR vcr, InputVCRMode vcrMode)
+    {
+        if(vcrMode == InputVCRMode.Playback)
+        {
+            vcr.transform.parent = vcrPlaybackModeParent;
+        }
+        else
+        {
+            vcr.transform.parent = vcr.originalParent;
+        }
     }
 }
