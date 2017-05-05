@@ -336,7 +336,7 @@ public class InkVR_InputVCRController : MonoBehaviour {
         string tempBuf = null;
 
         var myFiles = GetAllRecordings();
-        for (int i = 0;i < 3;i++)
+        for (int i = 0;i < 2;i++)
         {
             int randIndex = UnityEngine.Random.Range(0, myFiles.Count);
             tempBuf = myFiles[randIndex];
