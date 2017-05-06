@@ -15,11 +15,14 @@ public class InkVR_InputVCRController : MonoBehaviour {
     public string defaultRecordName;
     public bool enableKeyCtrlFunc;
     public bool enableRecordFunc;
+    public float nextVideoInterval = 3;
+
     [HideInInspector]
     public bool chooseCurrentRecordingFirst;
 
     public DemoSceneUIManager uiManager;
     public Transform vcrPlaybackModeParent;
+    
 
     Dictionary<string, InputVCR> vcrDict;
     Dictionary<string, Recording> recordingDict;
@@ -289,7 +292,7 @@ public class InkVR_InputVCRController : MonoBehaviour {
     {
         if(inRandPlaybackMode)
         {
-            Invoke("PlayNextRecording", 5);
+            Invoke("PlayNextRecording", nextVideoInterval);
         }
 
         lastPlayRecordName = nextPlayRecordName;
