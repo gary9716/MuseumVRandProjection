@@ -32,6 +32,7 @@ public class InkVRAppCtrler : MonoBehaviour {
     [Header("main scene")]
     public InkVR_InputVCRController vcrCtrler;
     public DemoSceneUIManager uiManager;
+    public OSCClientManager oscClient;
     
     //if we need any parameter, put them here and make them public
     
@@ -100,10 +101,14 @@ public class InkVRAppCtrler : MonoBehaviour {
     {
         vcrCtrler = FindObjectOfType<InkVR_InputVCRController>();
         uiManager = FindObjectOfType<DemoSceneUIManager>();
+        oscClient = FindObjectOfType<OSCClientManager>();
     }
 
     public void Quit()
     {
+        if (oscClient)
+            oscClient.sendExitMsg();
+
         //If we are running in a standalone build of the game
 #if UNITY_STANDALONE
         //Quit the application

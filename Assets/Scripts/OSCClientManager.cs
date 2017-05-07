@@ -32,5 +32,9 @@ public class OSCClientManager : MonoBehaviour {
         OSCHandler.Instance.SendMessageToOFSpoutApp<string>("winCtrl", "hide");
     }
 
+    public void sendExitMsg()
+    {
+        OSCHandler.Instance.SendMessageToOFSpoutApp<string>("appCtrl", "exit");
+    }
 
 }
