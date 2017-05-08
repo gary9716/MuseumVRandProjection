@@ -33,7 +33,8 @@ public class PeachTreesManager : MonoBehaviour {
 		foreach(PeachTreeLandingPtsCtrler peachTree in peachTrees) {
 			//peachTree.putTestingButterfly = true;
 			peachTree.GenerateLandingPtsBasedOnBranches();
-			peachTree.SetPtsDirBasedOnObserver(Camera.main.transform.position);
+            if(Camera.main != null)
+			    peachTree.SetPtsDirBasedOnObserver(Camera.main.transform.position);
 			if(minNumLandingPts > peachTree.numPts)
 				minNumLandingPts = peachTree.numPts;
 		}

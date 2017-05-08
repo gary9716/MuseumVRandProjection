@@ -19,7 +19,6 @@ public class OSCClientManager : MonoBehaviour {
         {
             sendShowProjectionMsg();
         }
-
     }
 
     public void sendShowProjectionMsg()
